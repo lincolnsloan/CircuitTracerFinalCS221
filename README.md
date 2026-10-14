@@ -3,125 +3,214 @@
 * CS-221
 * 05/01/26
 * Lincoln Sloan
-**************** 
+****************
 
 OVERVIEW:
 
- Concisely explain what the program does. If this exceeds a couple
- of sentences, you're going too far. The details go in other
- sections.
+CircuitTracer reads a circuit board from a text file and finds every shortest
+path of open cells between the component marked 1 and the component marked 2.
+The search can use a stack or a queue. Results are printed to the console.
+GUI output is recognized on the command line and reported as unavailable.
 
 
 INCLUDED FILES:
 
- List the files required for the project with a brief
- explanation of why each is included.
-
- e.g.
- * Class1.java - source file
- * Class2.java - source file
- * README - this file
+* CircuitTracer.java - program driver. Reads the command line, runs the search, and prints results.
+* CircuitBoard.java - loads a board from a file and stores the grid, start, and end.
+* TraceState.java - one partial path. Holds a copy of the board with that path marked.
+* Storage.java - stores TraceState objects in either a stack or a queue.
+* InvalidFileFormatException.java - thrown when a board file is readable but not a valid board.
+* OccupiedPositionException.java - thrown when a trace is placed on a cell that is not open.
+* CircuitTracerTester.java - instructor test harness. Builds its own input files and checks output.
+* MethodTester.java - small manual driver used while developing the board reader and the search.
+* tracer/valid1.dat through tracer/valid10.dat - sample boards with a legal layout.
+* tracer/invalid1.dat through tracer/invalid12.dat - sample boards with format errors.
+* README.md - this file.
 
 
 COMPILING AND RUNNING:
 
- Give the command for compiling the program, the command
- for running the program, and any usage instructions the
- user needs.
- 
- These are command-line instructions for a system like onyx.
- They have nothing to do with Eclipse or any other IDE. They
- must be specific - assume the user has Java installed, but
- has no idea how to compile or run a Java program from the
- command-line.
- 
- e.g.
- From the directory containing all source files, compile the
- driver class (and all dependencies) with the command:
- $ javac Class1.java
+From the directory that contains the .java files, compile the driver and the
+classes it depends on:
 
- Run the compiled class file with the command:
- $ java Class1
+$ javac CircuitTracer.java
 
- Console output will give the results after the program finishes.
+Run it with three arguments. The first chooses the search structure, the second
+chooses the output, and the third is the board file:
+
+$ java CircuitTracer -s -c tracer/valid1.dat
+$ java CircuitTracer -q -c tracer/valid1.dat
+
+-s uses a stack (depth-first). -q uses a queue (breadth-first). -c prints each
+shortest board to the console, with a blank line between boards. Open cells on
+a solution are marked T. -g is accepted as the GUI option, but this program
+does not open a window. It still runs the search, then prints "GUI output is
+not available."
+
+If the arguments are missing or not one of those choices, the program prints a
+usage message and exits. If the file is missing or is not a valid board, it
+prints the exception and exits. It does not print a Java stack trace for those
+cases.
+
+To compile and run the instructor tester from the same directory:
+
+$ javac CircuitTracerTester.java
+$ java CircuitTracerTester
+
+The tester writes temporary .dat and .out files in the current directory.
 
 
 ANALYSIS:
- i.
- The order in which paths are retrieved and built upon is completely different when using the search algorithm with a stack vs. a queue. When using a stack the algorithm finds the most recent path, moves it further in all possible directions, then takes one of these new paths created (whichever was made last) and repeats the process. The program basically rushes to target before going back and altering its path from the path's end to its beginning until it's searched through every possible path for the best one.
- When using the queue the program instead finds all possible paths from a given path end and stores them. Then it goes back to the oldest path which hasn't been explored further and does the same thing. The queue version essentially branches out (mostly) simultaneously until reaching either a dead end or the target.
- 
- ii. 
- The total number of search states for both stack and queue is the same due to the algorithm not stopping the search until all paths are searched ("while (!stateStore.isEmpty())"). So, unless optimized they will both search every search state.
 
- iii. 
- Because the stack algorithm ignores branching paths and keeps going until it can't, it is more likely to spend time exploring a dead-end path than queue. This isn't always the case though as stack and queue may move more frequently in different directions (If you store branches from your path in a certain order, stack will continue the path from the last added, and queue will continue from the first added), so if stack is lucky it might be sent in the right direction while queue is left exploring every possible path.
+i.
+The order in which paths are retrieved and built upon is completely different
+when the search uses a stack instead of a queue. With a stack, the algorithm
+takes the most recently stored path and extends it in every open direction,
+then immediately continues from whichever of those extensions was stored last.
+It rushes toward a dead end or the target, then backs up and tries the
+branches it skipped. With a queue, the algorithm stores every one-step
+extension of the current path and then returns to the oldest path that has not
+been extended yet. The queue version spreads outward one step at a time until
+each branch reaches a dead end or the target.
 
- iv. 
- Since the queue explores all possible paths of a certain length before increasing the length, the first solution found is guarenteed to have the least length.
+ii.
+The total number of search states is the same for the stack and the queue.
+The loop keeps going until the store is empty ("while (!stateStore.isEmpty())"),
+and neither version discards a state just because a solution has already been
+found. Unless the search is changed to prune longer paths, both structures
+generate every reachable search state. They only differ in the order those
+states are visited.
 
- v. 
- The queue needs to store all branches that haven't been expanded on at the same time. The stack only needs to store the unexplored branches which it skipped over getting to its current path. This means that the queue requires more memory.
+iii.
+Because the stack ignores other branches and keeps extending the newest path
+until it cannot, it is more likely to spend time inside a dead end than the
+queue is. That is not true on every board. Neighbors are stored in a fixed
+order (right, down, left, then up), so the stack always continues from the
+last of those directions and the queue always continues from the first. If
+that last direction happens to lead toward the target, the stack can reach a
+solution while the queue is still expanding every other branch of the same
+length.
 
- vi. 
- In the case of this algorithm, n would be the number of open spaces on the board since it needs to get through every path over these spaces before ending. After every step, you have anywhere from 0 to 3 next steps to take, and the same from each of those. In a worst case scenario you have about 3 choices on n number of open spaces, so the number of possible paths would be around 3^n. This doesn't take into account paths smaller than n or having less path options on edges, but the order would be 
- O(3^n).
+iv.
+The queue explores every path of a given length before it explores any longer
+path, so the first solution it finds is guaranteed to be a shortest path.
+
+v.
+The queue has to keep every branch that has not been expanded yet. The stack
+only keeps the branches it skipped while following its current path. The queue
+therefore needs more memory on the same board.
+
+vi.
+Here n is the number of open cells, because a path is a sequence of those
+cells and a cell is never reused. From each cell the search can step to at
+most three new open neighbors (four directions, minus the cell just left,
+which is already marked T). In the worst case that branching continues across
+the open cells, so the number of paths is on the order of 3^n. That bound
+ignores shorter paths and the fact that edges and blocked cells remove
+choices, but the growth rate is O(3^n).
 
 
 PROGRAM DESIGN AND IMPORTANT CONCEPTS:
 
- This is the sort of information someone who really wants to
- understand your program - possibly to make future enhancements -
- would want to know.
+CircuitBoard is the grid. Its file constructor reads the row and column counts,
+then reads exactly that many rows. Each cell must be one character: O for
+open, X for blocked, 1 for the start, 2 for the end, or T. A T is allowed in
+an input file but is not an open cell, so the search will not step on it. The
+constructor rejects the wrong number of rows or columns, a non-positive size,
+a cell that is not one of those characters, a cell token longer than one
+character, and any board that does not contain exactly one 1 and one 2. A
+missing file throws FileNotFoundException. The copy constructor duplicates the
+grid and both endpoints so that later paths cannot change an earlier board.
 
- Explain the main concepts and organization of your program so that
- the reader can understand how your program works. This is not a repeat
- of javadoc comments or an exhaustive listing of all methods, but an
- explanation of the critical algorithms and object interactions that make
- up the program.
+TraceState is one candidate path. The first constructor copies the starting
+board and marks the first open neighbor of 1 with T. Later constructors copy
+the previous state and mark one new open neighbor. Point.x is the row and
+Point.y is the column, matching the order used when the board stores its
+endpoints. A state is a solution when its last T is directly beside 2, not
+diagonal to it. pathLength() is the number of T cells, which is the cost of
+the path because every step has the same cost.
 
- Explain the main responsibilities of the classes and interfaces that make
- up the program. Explain how the classes work together to achieve the program
- goals. If there are critical algorithms that a user should understand, 
- explain them as well.
- 
- If you were responsible for designing the program's classes and choosing
- how they work together, why did you design the program this way? What, if 
- anything, could be improved? 
+Storage is a bridge over java.util.Stack and a LinkedList used as a queue.
+CircuitTracer asks it to store and retrieve TraceState objects and never calls
+stack or queue methods itself. Choosing -s or -q only changes which structure
+Storage builds. Retrieval from the stack is last-in first-out, so the search
+is depth-first. Retrieval from the queue is first-in first-out, so the search
+is breadth-first.
+
+CircuitTracer ties those pieces together. After the command line is checked,
+it loads the board and stores a TraceState for every open cell beside 1, in
+the order right, down, left, up. It then retrieves states until the store is
+empty. A solution is kept when it is the first one, when it is the same length
+as the solutions already kept, or when it is shorter, in which case the old
+list is cleared. A state that is not a solution is extended to each open
+neighbor in that same order. When the store is empty, every remaining board in
+the list is a shortest path. Console mode prints those boards. Each board's
+text already ends with a newline, and an extra newline is printed after it so
+that solutions are separated by a blank line.
+
+The classes are split this way so the board, a single path, and the choice of
+stack or queue can change without rewriting the search loop. One improvement
+would be to stop expanding a state once its length is already at least the
+best solution found so far. Breadth-first search could then stop as soon as
+the next state is longer than the first solution. The current loop does not
+do that, which is why the stack and the queue visit the same states.
 
 
 TESTING:
 
- How did you test your program to be sure it works and meets all of the
- requirements? What was the testing strategy? What kinds of tests were run?
- Can your program handle bad input? Is your program  idiot-proof? How do you 
- know? What are the known issues / bugs remaining in your program?
+I tested the board reader with MethodTester against the valid and invalid
+files in tracer/. All 12 invalid files throw InvalidFileFormatException, and
+all 10 valid files load and print the expected grid. I used the same driver
+to check the usage message and the command-line checks before the search
+existed.
 
- I created a java file called MethodTester.java. For the CircuitBoard.java constructor used the valid and invalid test files provided to us in the assignment overview to loop through all 12 invalid files to make sure they threw the correct exceptions, then loop through all 10 valid files along with CircuitBoard.toString() to make sure they created the board correctly. When I started CircuitTracer.java I used the same MethodTester.java file to test my usage statement print out. I also used this file as well as the main file itself to find out how to validate the command line arguments. When I built the algorithm in CircuitTracer I started using the CircuitTracerTester nearly entirely. The files and file outputs pairs that it put in my workspace were helpful in figuring out exactly what was happening. 
- While testing the algorithm I kept failing a lot of tests and wasn't sure why for a long time until I studied my code and found that in the while loop in the algorithm in CircuitTracer I was initializing new TraceStates using the original board instead of the previous TraceState. This is because I copy/pasted the if statements from earlier in the code and accidentally didn't change that part. I also had the x and y assignments to startRow and startCol in that method flipped. Once I fixed these two things and my output format I went from 60% of tests passed to 97.7%.
+Once the search was in place I relied on CircuitTracerTester. It generates
+its own valid and invalid boards, runs CircuitTracer with both -s and -q,
+and compares the printed boards with the known shortest paths. It also checks
+bad arguments, a missing file, and the GUI option.
+
+The program handles bad input by printing a short message and returning.
+Wrong or missing arguments print the usage message. A missing file prints
+FileNotFoundException. A malformed board prints InvalidFileFormatException.
+Placing a trace on a blocked cell, or off the board, throws
+OccupiedPositionException; the search avoids that by calling isOpen before it
+builds the next TraceState.
+
+CircuitTracerTester reports 86 of 86 tests passed. There is no GUI. Choosing
+-g prints one line saying GUI output is not available.
 
 
 DISCUSSION:
- 
- Discuss the issues you encountered during programming (development)
- and testing. What problems did you have? What did you have to research
- and learn on your own? What kinds of errors did you get? How did you 
- fix them?
- 
- What parts of the project did you find challenging? Is there anything
- that finally "clicked" for you in the process of working on this project?
- 
- 
+
+The search was the hard part. Two bugs kept the early versions off the
+expected boards. In the main loop I built each new TraceState from the
+original board instead of from the previous TraceState. That came from
+copying the setup code and not changing the constructor call, so every step
+replaced the path instead of extending it. I also had row and column
+backwards when I read the start point: Point.x is the row and Point.y is the
+column. After those two corrections, and after the printed boards matched the
+tester's spacing, the suite went from about 60 percent passing to 84 of 86.
+
+The remaining two failures were the GUI tests. The program accepted -g and
+then printed nothing, so the tester treated the option as neither a window
+nor a reported limitation. It now prints that GUI output is not available.
+
+What finally clicked was that a stack and a queue do not change which paths
+exist. They only change which partial path is expanded next. Once each
+TraceState owned its own board copy, both structures could run through the
+same loop and still come out with the same shortest boards in a different
+order.
+
+Reading the board had its own traps. Taking only the first character of a
+token made a cell such as "OX" look like an open cell, a blank or huge
+dimension could throw a Java runtime exception instead of
+InvalidFileFormatException, and marking a cell outside the grid crashed
+instead of throwing OccupiedPositionException. Those cases now report the
+project's own exceptions.
+
+
 EXTRA CREDIT:
 
- If the project had opportunities for extra credit that you attempted,
- be sure to call it out so the grader does not overlook it.
-
-
-----------------------------------------------------------------------------
-
-All content in a README file is expected to be written in clear English with
-proper grammar, spelling, and punctuation. If you are not a strong writer,
-be sure to get someone else to help you with proofreading. Consider all project
-documentation to be professional writing for your boss and/or potential
-customers.
+No extra credit was attempted. The GUI flag is part of the command-line
+interface, and this program reports that GUI output is not available rather
+than opening a window.

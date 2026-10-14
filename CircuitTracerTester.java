@@ -1073,6 +1073,7 @@ public class CircuitTracerTester {
 
 	private static final String VALID_0_FILENAME = "valid0.dat";
 	private static final char[][] VALID_0 = { { '1', '2' } };
+	@SuppressWarnings("unused") // valid0 is 1 beside 2, so it has no trace; no test reads this
 	private static final char[][][] VALID_0_SOLUTIONS = {
 			// none
 	};

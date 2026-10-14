@@ -1,6 +1,7 @@
 import java.awt.Point;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.NoSuchElementException;
 import java.util.Scanner;
 
 /**
@@ -24,7 +25,7 @@ public class CircuitBoard {
 	private final char TRACE = 'T';	//part of the trace connecting 1 to 2
 	private final char START = '1';	//the starting component
 	private final char END = '2';	//the ending component
-	private final String ALLOWED_CHARS = "OXT12"; //useful for validating with indexOf
+	private final String ALLOWED_CHARS = "" + OPEN + CLOSED + TRACE + START + END;
 
 	/** Construct a CircuitBoard from a given board input file, where the first
 	 * line contains the number of rows and columns as ints and each subsequent
@@ -49,16 +50,26 @@ public class CircuitBoard {
 
 		try {
 			//get ROWS and COLS from first line and initialize
-			String[] dimensions = fileScan.nextLine().split("\\s+");
+			if (!fileScan.hasNextLine()) {
+				throw new InvalidFileFormatException("File is empty");
+			}
+			String[] dimensions = fileScan.nextLine().trim().split("\\s+");
 			if (dimensions.length != 2) { 
 				throw new InvalidFileFormatException("First line of file must contain two integers for number of rows and columns in grid");
 			}
+			int rows;
+			int cols;
 			try {
-				ROWS = Integer.parseInt(dimensions[0]);
-				COLS = Integer.parseInt(dimensions[1]);
+				rows = Integer.parseInt(dimensions[0]);
+				cols = Integer.parseInt(dimensions[1]);
 			} catch (NumberFormatException e) {
 				throw new InvalidFileFormatException("First line of file must contain two integers for number of rows and columns in grid");
 			}
+			if (rows <= 0 || cols <= 0) {
+				throw new InvalidFileFormatException("Number of rows and columns must be positive integers");
+			}
+			ROWS = rows;
+			COLS = cols;
 			board = new char[ROWS][COLS];
 				
 			//loop through and populate board array
@@ -66,7 +77,7 @@ public class CircuitBoard {
 				if (!fileScan.hasNextLine()) { 
 					throw new InvalidFileFormatException("Board has fewer rows than declared");
 				}
-				String[] line = fileScan.nextLine().split("\\s+");
+				String[] line = fileScan.nextLine().trim().split("\\s+");
 
 				if (line.length < COLS) {
 					throw new InvalidFileFormatException("Row " + (row + 1) + " has fewer columns than declared");
@@ -75,6 +86,9 @@ public class CircuitBoard {
 				}
 				
 				for (int col = 0; col < COLS; col++) {
+					if (line[col].length() != 1) {
+						throw new InvalidFileFormatException("Each board position must be a single character. Valid characters include: O, X, T, 1, 2");
+					}
 					char currentChar = line[col].charAt(0);
 					board[row][col] = currentChar;
 					
@@ -97,6 +111,8 @@ public class CircuitBoard {
 			if (numStarts != 1 || numEnds != 1) {
 				throw new InvalidFileFormatException("Board must contain exactly one '1' for the starting point and one '2' for the ending point");
 			}
+		} catch (NoSuchElementException e) {
+			throw new InvalidFileFormatException("File is empty or ended before the board was complete");
 		} finally {
 			fileScan.close();
 		}
@@ -153,11 +169,13 @@ public class CircuitBoard {
 	 * @throws OccupiedPositionException if given position is not open
 	 */
 	public void makeTrace(int row, int col) {
-		if (isOpen(row, col)) {
-			board[row][col] = TRACE;
-		} else {
-			throw new OccupiedPositionException("row " + row + ", col " + col + "contains '" + board[row][col] + "'");
+		if (!isOpen(row, col)) {
+			if (row < 0 || row >= ROWS || col < 0 || col >= COLS) {
+				throw new OccupiedPositionException("row " + row + ", col " + col + " is outside the board");
+			}
+			throw new OccupiedPositionException("row " + row + ", col " + col + " contains '" + board[row][col] + "'");
 		}
+		board[row][col] = TRACE;
 	}
 	
 	/** @return starting Point(row,col) */

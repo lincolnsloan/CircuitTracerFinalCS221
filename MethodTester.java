@@ -61,7 +61,7 @@ public class MethodTester {
                 String[] CTArgs = {storeArg, "-c", fileString};
 
                 System.out.println("invalid " + i);
-                CircuitTracer trace = new CircuitTracer(CTArgs);
+                new CircuitTracer(CTArgs);
             }
         }
         
@@ -77,7 +77,7 @@ public class MethodTester {
                 String[] CTArgs = {storeArg, "-c", fileString};
 
                 System.out.println("valid " + i);
-                CircuitTracer trace = new CircuitTracer(CTArgs);
+                new CircuitTracer(CTArgs);
             }
         }     
     }

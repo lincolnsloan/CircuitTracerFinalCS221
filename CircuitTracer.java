@@ -27,11 +27,11 @@ public class CircuitTracer {
 
 	/** Print instructions for running CircuitTracer from the command line. */
 	private void printUsage() {
-		System.out.println(	"Usage: $ java CircuitTracer <-s | -q> <-c | -g> <filename>\r\n" + 
-							"\t\t where\t -s is to use stack storage\r\n" + 
-							"\t\t\t -q is to use queue storage\r\n" + 
-							"\t\t and\t -c is console output\r\n" + 
-							"\t\t\t -g is GUI output\r\n");
+		System.out.println("Usage: java CircuitTracer <-s | -q> <-c | -g> <filename>");
+		System.out.println("  where  -s is to use stack storage");
+		System.out.println("         -q is to use queue storage");
+		System.out.println("  and    -c is console output");
+		System.out.println("         -g is GUI output");
 	}
 	
 	/** 
@@ -74,7 +74,7 @@ public class CircuitTracer {
 		int startRow = start.x; 
 		int startCol = start.y; 
 
-		if (board.isOpen(startRow, startCol + 1)) { /////////////////////// Switch around order perhaps to see if it changes the effeciency of either stack or queue
+		if (board.isOpen(startRow, startCol + 1)) {
 			TraceState initialRight = new TraceState(board, startRow, startCol + 1);
 			stateStore.store(initialRight);
 		} 
@@ -108,7 +108,7 @@ public class CircuitTracer {
 				int currentRow = currentState.getRow();
 				int currentCol = currentState.getCol();
 
-				if (currentState.isOpen(currentRow, currentCol + 1)) { /////////////////////// Switch around order perhaps to see if it changes the effeciency of either stack or queue
+				if (currentState.isOpen(currentRow, currentCol + 1)) {
 					TraceState currentStateRight = new TraceState(currentState, currentRow, currentCol + 1);
 					stateStore.store(currentStateRight);
 				} 
@@ -127,11 +127,13 @@ public class CircuitTracer {
 			}
 		}
 
-		//output results to console
+		// Console output prints every shortest board. GUI output is not implemented.
 		if (args[1].equals("-c")) {
 			for (int i = 0; i < bestPaths.size(); i ++) {
 				System.out.println(bestPaths.get(i).toString());
 			}
+		} else {
+			System.out.println("GUI output is not available.");
 		}
 	}
 } // class CircuitTracer
